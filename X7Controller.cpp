@@ -2,45 +2,15 @@
 #include "X7Controller.hpp"
 
 #include <iostream>
-#include <cmath>
 #include <cstdlib>
 #include <vector>
 #include <chrono>
 
 
+inline double toDegree(double x){return 180.0 * x / M_PI;}
+inline double toRadian(double x){return M_PI * x / 180.0;}
 
-class Servo{
-    public:
-        Servo()
-            : mMAX_POSITION(0), mMIN_POSITION(0), mOFFSET(0), mINVERT(1){
-        }
-        Servo(const int maxPos, const int minPos, const int offset, const double invert)
-            : mMAX_POSITION(maxPos), mMIN_POSITION(minPos), mOFFSET(offset), mINVERT(invert){
-        }
-        ~Servo(){}
 
-        void setPosition(const int pos){
-            mCurrentPosition = pos;
-        }
-        int getPosition(void) const {
-            return mCurrentPosition;
-        }
-        double getAngle(void) const {
-            return mINVERT * 2.0 * M_PI * (double)(mCurrentPosition - mOFFSET)/(double)mRESOLUTION;
-        }
-        int angleToPosition(const double angle_radian) const {
-            return mINVERT * (angle_radian / (2.0*M_PI)) * mRESOLUTION + mOFFSET;
-        }
-
-    private:
-        const int mRESOLUTION = 4096;
-        const int mMAX_POSITION;
-        const int mMIN_POSITION;
-        const int mOFFSET;
-        const double mINVERT;
-
-        int mCurrentPosition;
-};
 
 
 X7Controller::X7Controller(const char *deviceName){
@@ -64,15 +34,7 @@ X7Controller::X7Controller(const char *deviceName){
     communicationCheck();
 
     initializeDxlParameters();
-
-    mServoMap->emplace(2, Servo(3834,262,2045,  1.0));
-    mServoMap->emplace(3, Servo(3072,1024,2059,-1.0));
-    mServoMap->emplace(4, Servo(3834,262,2057,  1.0));
-    mServoMap->emplace(5, Servo(2048,228,2040, -1.0));
-    mServoMap->emplace(6, Servo(3834,262,2040,  1.0));
-    mServoMap->emplace(7, Servo(3072,1024,1994, 1.0));
-    mServoMap->emplace(8, Servo(3948,148,2017,  1.0));
-    mServoMap->emplace(9, Servo(3000,1991,2022, 1.0));
+    mPositionInitialized = false;
 }
 
 X7Controller::~X7Controller(){
@@ -88,9 +50,13 @@ bool X7Controller::initializePosition(void){
             mPortHandler,
             id,
             mADDR_GOAL_POSITION,
-            mServoMap->at(id).angleToPosition(0),
+            mServoMap[id].angleToPosition(0),
             &dxl_error);
     }
+
+    mPositionInitialized = true;
+
+    return true;
 }
 
 
@@ -114,9 +80,9 @@ void X7Controller::showServoAngles(const int duration_msec){
                      &dxl_error);
              
              if(result == COMM_SUCCESS){
-                 mServoMap->at(id).setPosition(dxl_present_position);
+                 mServoMap[id].setPosition(dxl_present_position);
                  std::cout<<"["<<std::to_string(id)<<"]"<<
-                     std::to_string(mServoMap->at(id).getAngle())<<"\t";
+                     std::to_string(mServoMap[id].getAngle())<<"\t";
              }
          }
          std::cout<<std::endl;
@@ -129,13 +95,14 @@ void X7Controller::showServoAngles(const int duration_msec){
 
 
 bool X7Controller::changeAngle(const uint8_t id, const double angle){
+    // 指定IDのサーボを指定角度に動かす
 
     uint8_t dxl_error;
     int result = mPacketHandler->write4ByteTxRx(
             mPortHandler,
             id,
             mADDR_GOAL_POSITION,
-            mServoMap->at(id).angleToPosition(angle),
+            mServoMap[id].angleToPosition(angle),
             &dxl_error);
 
     if(result != COMM_SUCCESS){
@@ -145,6 +112,50 @@ bool X7Controller::changeAngle(const uint8_t id, const double angle){
         return true;
     }
 }
+
+
+bool X7Controller::move3_5(const double x, const double z, const bool debug = true){
+    // ID3とID5のサーボを駆動し、指定座標(x, z)へハンドを動かす
+    // 指定座標が駆動範囲外の場合falseを返す
+    //
+
+    double z_0 = z - mLINK0; // 地面から浮いてる長さを引く
+    double inArcCos5 = (std::pow(x,2) 
+            + std::pow(z_0, 2) 
+            - std::pow(mLINK3, 2)
+            - std::pow(mLINK5, 2)) / (2.0*mLINK3*mLINK5);
+
+    if(inArcCos5 < -1.0 || inArcCos5 > 1.0){
+        std::cerr<<"角度計算がダメ angle5"<<std::endl;
+        return false;
+    }
+    double angle5 = std::acos(inArcCos5);
+
+    double A = mLINK3 + mLINK5*std::cos(angle5); // 計算用の変数
+    double B = mLINK5*std::sin(angle5); // 計算用の変数
+    double inArcSin3 = (A*x - B*z_0)/(std::pow(A,2) + std::pow(B,2));
+
+    if(inArcSin3 < -1.0 || inArcSin3 > 1.0){
+        std::cerr<<"角度計算がダメ angle3"<<std::endl;
+        return false;
+    }
+    double angle3 = std::asin(inArcSin3);
+
+    std::cout<<"Angle3 :"<<std::to_string(toDegree(angle3))
+        <<", Angle5 :"<<std::to_string(toDegree(angle5))<<std::endl;
+
+    if(debug) return true;
+
+    if(mPositionInitialized){
+        changeAngle(3, angle3);
+        changeAngle(5, angle5);
+    }else{
+        std::cout<<"Please initialize servo position"<<std::endl;
+    }
+
+    return true;
+}
+
 
 void X7Controller::communicationCheck(void){
     // Try to broadcast ping the Dynamixel

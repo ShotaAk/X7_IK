@@ -1,9 +1,11 @@
 
-
 #include "X7Controller.hpp"
 
 #include <fcntl.h>
 #include <termios.h>
+#include <iostream>
+#include <cmath>
+#include <unistd.h>
 
 
 int getch(){
@@ -39,8 +41,36 @@ int main(int argc, char* argv[]){
         }else if(keyInput == 'i'){
             controller.initializePosition();
         }else if(keyInput == 'a'){
-            controller.changeAngle(3, M_PI*45.0/180.0);
-            controller.changeAngle(5, M_PI*45.0/180.0);
+            // 円運動
+            std::cout<<"円運動"<<std::endl;
+            int step_max = 60;
+            int rotation_num = 2;
+            double offset_x = 0.1, offset_z = 0.4;
+            double length = 0.10;
+            double theta = 0;
+            double x, z;
+
+            // 最初に初期位置へ動かす
+            x = offset_x + length*cos(theta);
+            z = offset_z + length*sin(theta);
+            controller.move3_5(x, z, false);
+            usleep(2e6);
+
+            for(int r_num=0; r_num<rotation_num; r_num++){
+                for(int i=0; i<step_max; i++){
+                    theta = 2.0*M_PI* (i/(double)step_max);
+
+                    x = offset_x + length*cos(theta);
+                    z = offset_z + length*sin(theta);
+
+
+                    std::cout<<"x:z"<<std::to_string(x)<<":"<<std::to_string(z)<<std::endl;
+                    controller.move3_5(x, z, false);
+                    usleep(1e5);
+                }
+            }
+        }else{
+            std::cout<<keyInput<<std::endl;
         }
 
     }while(finish == false);
