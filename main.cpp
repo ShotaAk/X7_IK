@@ -20,6 +20,79 @@ int getch(){
     return ch;
 }
 
+void demo35Circle(X7Controller &controller, const bool debug){
+    // 円運動
+    std::cout<<"円運動"<<std::endl;
+    int step_max = 60;
+    int rotation_num = 2;
+    double offset_x = 0.1, offset_z = 0.4;
+    double length = 0.10;
+    double theta = 0;
+    double x, z;
+
+    // 最初に初期位置へ動かす
+    x = offset_x + length*cos(theta);
+    z = offset_z + length*sin(theta);
+    if(controller.move3_5(x, z, debug) == false){
+        return;
+    }
+    usleep(2e6);
+
+    for(int r_num=0; r_num<rotation_num; r_num++){
+        for(int i=0; i<step_max; i++){
+            theta = 2.0*M_PI* (i/(double)step_max);
+
+            x = offset_x + length*cos(theta);
+            z = offset_z + length*sin(theta);
+
+            std::cout<<"x:z"<<std::to_string(x)<<":"<<std::to_string(z)<<std::endl;
+            if(controller.move3_5(x, z, debug) == false){
+                return;
+            }
+            usleep(1e5);
+        }
+    }
+}
+
+void demo235Circle(X7Controller &controller, const bool debug){
+    // 円運動
+    std::cout<<"円運動"<<std::endl;
+    int step_max = 30;
+    int rotation_num = 2;
+    double offset_x = 0.2, offset_y = 0.0, offset_z = 0.4;
+    double length = 0.1;
+    double theta = 0;
+    double x, y, z;
+
+    // 最初に初期位置へ動かす
+    x = offset_x;
+    y = offset_y + length*cos(theta);
+    z = offset_z + length*sin(theta);
+    if(controller.move2_3_5(x, y, z, debug) == false){
+        return;
+    }
+    usleep(2e6);
+
+    for(int r_num=0; r_num<rotation_num; r_num++){
+        for(int i=0; i<step_max; i++){
+            theta = 2.0*M_PI* (i/(double)step_max);
+
+            y = offset_y + length*cos(theta);
+            z = offset_z + length*sin(theta);
+
+            std::cout<<"x:y:z"
+                <<std::to_string(x)<<":"
+                <<std::to_string(y)<<":"
+                <<std::to_string(z)<<std::endl;
+            if(controller.move2_3_5(x, y, z, debug) == false){
+                return;
+            }
+            usleep(1e5);
+        }
+    }
+}
+
+
 int main(int argc, char* argv[]){
 
     if(argc < 2){
@@ -41,34 +114,8 @@ int main(int argc, char* argv[]){
         }else if(keyInput == 'i'){
             controller.initializePosition();
         }else if(keyInput == 'a'){
-            // 円運動
-            std::cout<<"円運動"<<std::endl;
-            int step_max = 60;
-            int rotation_num = 2;
-            double offset_x = 0.1, offset_z = 0.4;
-            double length = 0.10;
-            double theta = 0;
-            double x, z;
-
-            // 最初に初期位置へ動かす
-            x = offset_x + length*cos(theta);
-            z = offset_z + length*sin(theta);
-            controller.move3_5(x, z, false);
-            usleep(2e6);
-
-            for(int r_num=0; r_num<rotation_num; r_num++){
-                for(int i=0; i<step_max; i++){
-                    theta = 2.0*M_PI* (i/(double)step_max);
-
-                    x = offset_x + length*cos(theta);
-                    z = offset_z + length*sin(theta);
-
-
-                    std::cout<<"x:z"<<std::to_string(x)<<":"<<std::to_string(z)<<std::endl;
-                    controller.move3_5(x, z, false);
-                    usleep(1e5);
-                }
-            }
+            // demo35Circle(controller, true);
+            demo235Circle(controller, false);
         }else{
             std::cout<<keyInput<<std::endl;
         }

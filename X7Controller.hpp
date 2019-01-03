@@ -49,6 +49,7 @@ class X7Controller{
         void showServoAngles(const int duration_msec);
         bool changeAngle(const uint8_t id, const double angle);
         bool move3_5(const double x, const double z, const bool debug);
+        bool move2_3_5(const double x, const double y, const double z, const bool debug);
 
 
     private:

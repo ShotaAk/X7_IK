@@ -117,7 +117,6 @@ bool X7Controller::changeAngle(const uint8_t id, const double angle){
 bool X7Controller::move3_5(const double x, const double z, const bool debug = true){
     // ID3とID5のサーボを駆動し、指定座標(x, z)へハンドを動かす
     // 指定座標が駆動範囲外の場合falseを返す
-    //
 
     double z_0 = z - mLINK0; // 地面から浮いてる長さを引く
     double inArcCos5 = (std::pow(x,2) 
@@ -151,6 +150,64 @@ bool X7Controller::move3_5(const double x, const double z, const bool debug = tr
         changeAngle(5, angle5);
     }else{
         std::cout<<"Please initialize servo position"<<std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+
+bool X7Controller::move2_3_5(const double x, const double y, const double z, const bool debug){
+    // ID2とID3とID5のサーボを駆動し、指定座標(x,y,z)へハンドを動かす
+    // 指定座標が駆動範囲外の場合falseを返す
+
+    double z_0 = z - mLINK0; // 地面から浮いてる長さを引く
+    double inArcCos5 = (std::pow(x,2) 
+            + std::pow(y, 2) 
+            + std::pow(z_0, 2) 
+            - std::pow(mLINK3, 2)
+            - std::pow(mLINK5, 2)) / (2.0*mLINK3*mLINK5);
+
+    if(inArcCos5 < -1.0 || inArcCos5 > 1.0){
+        std::cerr<<"角度計算がダメ angle5"<<std::endl;
+        return false;
+    }
+    double angle5 = std::acos(inArcCos5);
+
+    double angle2 = std::atan(y/x);
+
+    // 計算用の変数
+    double C2 = std::cos(angle2);
+    double C5 = std::cos(angle5);
+    double S5 = std::sin(angle5);
+
+    double A = mLINK3*C2 + mLINK5*C2*C5;
+    double B = mLINK5*C2*S5;
+    double D = mLINK3 + mLINK5*C5;
+    double E = mLINK5*S5;
+
+    double inArcSin3 = (D*x - B*z_0)/(A*D + B*E);
+
+    if(inArcSin3 < -1.0 || inArcSin3 > 1.0){
+        std::cerr<<"角度計算がダメ angle3"<<std::endl;
+        return false;
+    }
+    double angle3 = std::asin(inArcSin3);
+
+    std::cout
+        <<"Angle2 :"<<std::to_string(toDegree(angle2))
+        <<", Angle3 :"<<std::to_string(toDegree(angle3))
+        <<", Angle5 :"<<std::to_string(toDegree(angle5))<<std::endl;
+
+    if(debug) return true;
+
+    if(mPositionInitialized){
+        changeAngle(2, angle2);
+        changeAngle(3, angle3);
+        changeAngle(5, angle5);
+    }else{
+        std::cout<<"Please initialize servo position"<<std::endl;
+        return false;
     }
 
     return true;
