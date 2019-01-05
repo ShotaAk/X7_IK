@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <dynamixel_sdk.h>
 #include <cmath>
+#include <vector>
 
 namespace dxl = dynamixel;
 
@@ -48,9 +49,9 @@ class X7Controller{
         bool initializePosition(void);
         void showServoAngles(const int duration_msec);
         bool changeAngle(const uint8_t id, const double angle);
+        bool torqueOnOff(const std::vector<uint8_t> &onList, const std::vector<uint8_t> &offList);
         bool move3_5(const double x, const double z, const bool debug);
         bool move2_3_5(const double x, const double y, const double z, const bool debug);
-
 
     private:
         void communicationCheck(void);

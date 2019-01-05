@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <vector>
 #include <chrono>
 
 
@@ -111,6 +110,48 @@ bool X7Controller::changeAngle(const uint8_t id, const double angle){
     }else{
         return true;
     }
+}
+
+bool X7Controller::torqueOnOff(const std::vector<uint8_t> &onList, const std::vector<uint8_t> &offList){
+    // 指定IDのサーボのトルクをON/OFFする
+    // トルク操作に失敗した場合にfalseを返す。ただし、失敗後も操作は続ける
+    // onListとoffListに同じIDが含まれていてもOK。トルクオフ動作が優先される
+
+    bool allComplete = true;
+    int result;
+    uint8_t dxl_error;
+
+    // トルクオン
+    for(uint8_t id : onList){
+        result = mPacketHandler->write1ByteTxRx(
+            mPortHandler,
+            id,
+            mADDR_TORQUE_ENABLE,
+            mTORQUE_ENABLE,
+            &dxl_error);
+
+        if(result != COMM_SUCCESS){
+            std::cerr<<mPacketHandler->getTxRxResult(result)<<std::endl;
+            allComplete = false;
+        }
+    }
+
+    // トルクオフ
+    for(uint8_t id : offList){
+        result = mPacketHandler->write1ByteTxRx(
+            mPortHandler,
+            id,
+            mADDR_TORQUE_ENABLE,
+            mTORQUE_DISABLE,
+            &dxl_error);
+
+        if(result != COMM_SUCCESS){
+            std::cerr<<mPacketHandler->getTxRxResult(result)<<std::endl;
+            allComplete = false;
+        }
+    }
+
+    return allComplete;
 }
 
 

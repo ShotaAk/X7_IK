@@ -115,7 +115,10 @@ int main(int argc, char* argv[]){
             controller.initializePosition();
         }else if(keyInput == 'a'){
             // demo35Circle(controller, true);
-            demo235Circle(controller, false);
+            // demo235Circle(controller, false);
+            std::vector<uint8_t> onList = {4};
+            std::vector<uint8_t> offList = {2, 3, 5, 6, 7, 8 ,9};
+            controller.torqueOnOff(onList, offList);
         }else{
             std::cout<<keyInput<<std::endl;
         }
