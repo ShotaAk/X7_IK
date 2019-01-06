@@ -48,10 +48,11 @@ class X7Controller{
 
         bool initializePosition(void);
         void showServoAngles(const int duration_msec);
-        bool changeAngle(const uint8_t id, const double angle);
+        bool changeAngle(const uint8_t id, const double angle, const bool debug);
         bool torqueOnOff(const std::vector<uint8_t> &onList, const std::vector<uint8_t> &offList);
         bool move3_5(const double x, const double z, const bool debug);
         bool move2_3_5(const double x, const double y, const double z, const bool debug);
+        bool move23578(const double x, const double y, const double z, const double beta, const double gamma, const bool debug);
 
     private:
         void communicationCheck(void);
@@ -65,7 +66,7 @@ class X7Controller{
 
         const double    mPROTOCOL_VERSION       = 2.0;
         const int       mBAUDRATE               = 3000000;
-        const int       mPID_P_GAIN             = 200;
+        const int       mPID_P_GAIN             = 400;
         const int       mTORQUE_ENABLE          = 1;
         const int       mTORQUE_DISABLE         = 0;
         const uint16_t  mADDR_TORQUE_ENABLE     = 64;
@@ -80,7 +81,7 @@ class X7Controller{
             {4, Servo(3834,262,2057,  1.0)},
             {5, Servo(2048,228,2040, -1.0)},
             {6, Servo(3834,262,2040,  1.0)},
-            {7, Servo(3072,1024,1994, 1.0)},
+            {7, Servo(3072,1024,1994,-1.0)},
             {8, Servo(3948,148,2017,  1.0)},
             {9, Servo(3000,1991,2022, 1.0)},
         };

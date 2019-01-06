@@ -92,6 +92,46 @@ void demo235Circle(X7Controller &controller, const bool debug){
     }
 }
 
+void demo2357Circle(X7Controller &controller, const bool debug){
+    // 円運動
+    std::cout<<"円運動"<<std::endl;
+    int step_max = 30;
+    int rotation_num = 2;
+    double offset_x = 0.2, offset_y = -0.2, offset_z = 0.2;
+    double length = 0.05;
+    double theta = 0;
+    double beta = M_PI; // 真下を向かせる
+    double gamma = 0;  
+    double x, y, z;
+
+    // 最初に初期位置へ動かす
+    x = offset_x + length*cos(theta);
+    y = offset_y + length*sin(theta);
+    z = offset_z;
+    if(controller.move23578(x, y, z, beta, gamma, debug) == false){
+        return;
+    }
+    usleep(2e6);
+
+    for(int r_num=0; r_num<rotation_num; r_num++){
+        for(int i=0; i<step_max; i++){
+            theta = 2.0*M_PI* (i/(double)step_max);
+
+            x = offset_x + length*cos(theta);
+            y = offset_y + length*sin(theta);
+
+            std::cout<<"x:y:z"
+                <<std::to_string(x)<<":"
+                <<std::to_string(y)<<":"
+                <<std::to_string(z)<<std::endl;
+            if(controller.move23578(x, y, z, beta, gamma, debug) == false){
+                return;
+            }
+            usleep(1e5);
+        }
+    }
+}
+
 
 int main(int argc, char* argv[]){
 
@@ -116,9 +156,10 @@ int main(int argc, char* argv[]){
         }else if(keyInput == 'a'){
             // demo35Circle(controller, true);
             // demo235Circle(controller, false);
-            std::vector<uint8_t> onList = {4};
-            std::vector<uint8_t> offList = {2, 3, 5, 6, 7, 8 ,9};
-            controller.torqueOnOff(onList, offList);
+            demo2357Circle(controller, false);
+            // std::vector<uint8_t> onList = {4};
+            // std::vector<uint8_t> offList = {2, 3, 5, 6, 7, 8 ,9};
+            // controller.torqueOnOff(onList, offList);
         }else{
             std::cout<<keyInput<<std::endl;
         }

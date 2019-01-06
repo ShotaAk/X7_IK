@@ -93,21 +93,31 @@ void X7Controller::showServoAngles(const int duration_msec){
 }
 
 
-bool X7Controller::changeAngle(const uint8_t id, const double angle){
+bool X7Controller::changeAngle(const uint8_t id, const double angle, const bool debug=false){
     // 指定IDのサーボを指定角度に動かす
+    // 駆動に成功したらServoMapを更新する
+    // debugのときはServoMapのみを更新する
 
     uint8_t dxl_error;
+    int servoPosition = mServoMap[id].angleToPosition(angle);
+    
+    if(debug){
+        mServoMap[id].setPosition(servoPosition);
+        return false;
+    }
+
     int result = mPacketHandler->write4ByteTxRx(
             mPortHandler,
             id,
             mADDR_GOAL_POSITION,
-            mServoMap[id].angleToPosition(angle),
+            servoPosition,
             &dxl_error);
 
     if(result != COMM_SUCCESS){
         std::cerr<<mPacketHandler->getTxRxResult(result)<<std::endl;
         return false;
     }else{
+        mServoMap[id].setPosition(servoPosition);
         return true;
     }
 }
@@ -240,16 +250,54 @@ bool X7Controller::move2_3_5(const double x, const double y, const double z, con
         <<", Angle3 :"<<std::to_string(toDegree(angle3))
         <<", Angle5 :"<<std::to_string(toDegree(angle5))<<std::endl;
 
-    if(debug) return true;
-
     if(mPositionInitialized){
-        changeAngle(2, angle2);
-        changeAngle(3, angle3);
-        changeAngle(5, angle5);
+        changeAngle(2, angle2, debug);
+        changeAngle(3, angle3, debug);
+        changeAngle(5, angle5, debug);
     }else{
         std::cout<<"Please initialize servo position"<<std::endl;
         return false;
     }
+
+    return true;
+}
+
+bool X7Controller::move23578(const double x, const double y, const double z, const double beta, const double gamma, const bool debug){
+
+    // ID2とID3とID5のサーボを駆動し、指定座標(x,y,z)へハンドを動かす
+    // ハンドをy軸回りにbetaだけ回転させた姿勢に動かす
+    // 指定座標が駆動範囲外の場合falseを返す
+
+
+    if(move2_3_5(x, y, z, debug) == false){
+        return false;
+    }
+
+    double angle2 = mServoMap[2].getAngle();
+    double angle3 = mServoMap[3].getAngle();
+    double angle5 = mServoMap[5].getAngle();
+
+    // ID7と8のサーボの駆動範囲を-π/2 ~ +π/2に制限する
+    double angle7 = beta - (angle3 + angle5);
+    double angle8 = gamma + angle2;
+
+
+    if(angle7 > M_PI_2){
+        std::cerr<<"betaがプラス方向に大きい "
+            <<"beta: "<<std::to_string(beta)
+            <<" angle7: "<<std::to_string(angle7)<<std::endl;
+        return false;
+
+    }else if(angle7 < -M_PI_2){
+        std::cerr<<"betaがマイナス方向に大きい "
+            <<"beta: "<<std::to_string(beta)
+            <<" angle7: "<<std::to_string(angle7)<<std::endl;
+        return false;
+    }
+
+    std::cout<<"Angle7: "<<std::to_string(toDegree(angle7))<<std::endl;
+    changeAngle(7, angle7, debug);
+    changeAngle(8, angle8, debug);
 
     return true;
 }
