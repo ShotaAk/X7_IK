@@ -5,7 +5,9 @@
 #include <dynamixel_sdk.h>
 #include <cmath>
 #include <vector>
+#include <complex>
 
+typedef std::complex<double> Complex;
 namespace dxl = dynamixel;
 
 class Servo{
@@ -50,14 +52,19 @@ class X7Controller{
         void showServoAngles(const int duration_msec);
         bool changeAngle(const uint8_t id, const double angle, const bool debug);
         bool torqueOnOff(const std::vector<uint8_t> &onList, const std::vector<uint8_t> &offList);
+        bool velocityMode(const std::vector<uint8_t> &idList);
+        bool positionMode(const std::vector<uint8_t> &idList);
         bool move3_5(const double x, const double z, const bool debug);
         bool move2_3_5(const double x, const double y, const double z, const bool debug);
         bool move23578(const double x, const double y, const double z, const double beta, const double gamma, const bool debug);
+        bool testMove(const int duration_msec);
 
     private:
         void communicationCheck(void);
         void detachDynamixel(void);
         void initializeDxlParameters(void);
+        Complex getPositionXZ(void);
+        bool velocityMove(const double vx, const double vy, const int duration_mse, const bool debug);
 
         
         const double    mLINK0                  = 0.11; // meter 固定リンク
@@ -69,8 +76,12 @@ class X7Controller{
         const int       mPID_P_GAIN             = 400;
         const int       mTORQUE_ENABLE          = 1;
         const int       mTORQUE_DISABLE         = 0;
+        const int       mMODE_VELOCITY_CONTROL  = 1;
+        const int       mMODE_POSITION_CONTROL  = 3;
+        const uint16_t  mADDR_OPERATING_MODE    = 11;
         const uint16_t  mADDR_TORQUE_ENABLE     = 64;
         const uint16_t  mADDR_POSITION_P_GAIN   = 84;
+        const uint16_t  mADDR_GOAL_VELOCITY     = 104;
         const uint16_t  mADDR_GOAL_POSITION     = 116;
         const uint16_t  mADDR_PRESENT_POSITION  = 132;
 

@@ -156,10 +156,10 @@ int main(int argc, char* argv[]){
         }else if(keyInput == 'a'){
             // demo35Circle(controller, true);
             // demo235Circle(controller, false);
-            demo2357Circle(controller, false);
-            // std::vector<uint8_t> onList = {4};
+            // demo2357Circle(controller, false);
             // std::vector<uint8_t> offList = {2, 3, 5, 6, 7, 8 ,9};
             // controller.torqueOnOff(onList, offList);
+            controller.testMove(10000);
         }else{
             std::cout<<keyInput<<std::endl;
         }

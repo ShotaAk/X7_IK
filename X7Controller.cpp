@@ -165,6 +165,77 @@ bool X7Controller::torqueOnOff(const std::vector<uint8_t> &onList, const std::ve
 }
 
 
+bool X7Controller::velocityMode(const std::vector<uint8_t> &idList){
+    // 指定IDのサーボを速度制御モードにする
+    // この操作中はトルクがOFFされるため注意すること
+    // 操作に失敗した場合にfalseを返す。ただし、失敗後も操作は続ける
+
+    bool allComplete = true;
+    int result;
+    uint8_t dxl_error;
+    std::vector<uint8_t> dummyList;
+
+    // トルクをオフする
+    torqueOnOff(dummyList, idList);
+
+    // モードを切り替える
+    for(uint8_t id : idList){
+        result = mPacketHandler->write1ByteTxRx(
+            mPortHandler,
+            id,
+            mADDR_OPERATING_MODE,
+            mMODE_VELOCITY_CONTROL,
+            &dxl_error);
+    
+        if(result != COMM_SUCCESS){
+            std::cerr<<mPacketHandler->getTxRxResult(result)<<std::endl;
+            allComplete = false;
+        }
+    }
+
+    // トルクをオンする
+    torqueOnOff(idList, dummyList);
+
+    return allComplete;
+}
+
+
+bool X7Controller::positionMode(const std::vector<uint8_t> &idList){
+    // 指定IDのサーボを位置制御モードにする
+    // この操作中はトルクがOFFされるため注意すること
+    // 操作に失敗した場合にfalseを返す。ただし、失敗後も操作は続ける
+
+    bool allComplete = true;
+    int result;
+    uint8_t dxl_error;
+    std::vector<uint8_t> dummyList;
+
+    // トルクをオフする
+    torqueOnOff(dummyList, idList);
+
+    // モードを切り替える
+    for(uint8_t id : idList){
+        result = mPacketHandler->write1ByteTxRx(
+            mPortHandler,
+            id,
+            mADDR_OPERATING_MODE,
+            mMODE_POSITION_CONTROL,
+            &dxl_error);
+    
+        if(result != COMM_SUCCESS){
+            std::cerr<<mPacketHandler->getTxRxResult(result)<<std::endl;
+            allComplete = false;
+        }
+    }
+
+    // トルクをオンする
+    torqueOnOff(idList, dummyList);
+
+    return allComplete;
+
+}
+
+
 bool X7Controller::move3_5(const double x, const double z, const bool debug = true){
     // ID3とID5のサーボを駆動し、指定座標(x, z)へハンドを動かす
     // 指定座標が駆動範囲外の場合falseを返す
@@ -303,6 +374,59 @@ bool X7Controller::move23578(const double x, const double y, const double z, con
 }
 
 
+bool X7Controller::testMove(const int duration_msec){
+    // 指定時間、テスト動作をする
+    std::chrono::system_clock::time_point  start, end;
+    start = std::chrono::system_clock::now();
+    double elapsed = 0;
+
+    if(mPositionInitialized == false){
+        std::cout<<"Please initialize servo position"<<std::endl;
+        return false;
+    }
+
+    // ID3と5だけトルクをオフする
+    std::vector<uint8_t> dummyList;
+    std::vector<uint8_t> idList = {3, 5};
+    torqueOnOff(dummyList, idList);
+
+    Complex position;
+    bool velocityControl = false;
+
+    while(elapsed < duration_msec){
+
+        position = getPositionXZ();
+        std::cout<<"X:"<<position.real()<<" Z:"<<position.imag()<<std::endl;
+        if(position.imag() < 0.4){
+            velocityControl = true;
+            std::cout<<"VelocityControl"<<std::endl;
+            break;
+        }
+
+
+        // 経過時間を更新
+        end = std::chrono::system_clock::now();
+        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+    }
+
+    if(velocityControl){
+        // 速度制御モードに切り替える
+        velocityMode(idList);
+
+        double VX=0.001;
+        double VZ=0;
+
+        // 位置制御モードに切り替える
+        positionMode(idList);
+    }
+
+    // ID3と5のトルクをオンする
+    torqueOnOff(idList, dummyList);
+
+    return true;
+}
+
+
 void X7Controller::communicationCheck(void){
     // Try to broadcast ping the Dynamixel
     std::vector<uint8_t> vec;
@@ -366,4 +490,35 @@ void X7Controller::initializeDxlParameters(void){
             mTORQUE_ENABLE,
             &dxl_error);
     }
+}
+
+
+Complex X7Controller::getPositionXZ(void){
+    // ID3とID5のサーボ位置を取得し、x, y座標として返す
+    // 他のサーボはinitialize位置で固定されていること
+
+     uint32_t dxl_present_position;
+     uint8_t dxl_error;
+
+     int result = mPacketHandler->read4ByteTxRx(mPortHandler,3,
+             mADDR_PRESENT_POSITION,(uint32_t*)&dxl_present_position,&dxl_error);
+     mServoMap[3].setPosition(dxl_present_position);
+     double angle3 = mServoMap[3].getAngle();
+
+     result = mPacketHandler->read4ByteTxRx(mPortHandler,5,
+             mADDR_PRESENT_POSITION,(uint32_t*)&dxl_present_position,&dxl_error);
+     mServoMap[5].setPosition(dxl_present_position);
+     double angle5 = mServoMap[5].getAngle();
+
+     Complex position;
+
+     // 実数部をx座標とする
+     position.real(mLINK3*std::sin(angle3) + mLINK5*std::sin(angle3+angle5));
+     position.imag(mLINK0 + mLINK3*std::cos(angle3) + mLINK5*std::cos(angle3+angle5));
+
+     return position;
+}
+
+bool X7Controller::velocityMove(const double vx, const double vy, const int duration_mse, const bool debug){
+
 }
