@@ -64,7 +64,8 @@ class X7Controller{
         void detachDynamixel(void);
         void initializeDxlParameters(void);
         Complex getPositionXZ(void);
-        bool velocityMove(const double vx, const double vy, const int duration_mse, const bool debug);
+        bool velocityMove(const double vx, const double vz, const int duration_msec, const bool debug);
+        double updateServoAngle(const uint8_t id);
 
         
         const double    mLINK0                  = 0.11; // meter 固定リンク

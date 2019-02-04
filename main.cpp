@@ -49,7 +49,7 @@ void demo35Circle(X7Controller &controller, const bool debug){
             if(controller.move3_5(x, z, debug) == false){
                 return;
             }
-            usleep(1e5);
+            usleep(1e4);
         }
     }
 }
@@ -87,7 +87,7 @@ void demo235Circle(X7Controller &controller, const bool debug){
             if(controller.move2_3_5(x, y, z, debug) == false){
                 return;
             }
-            usleep(1e5);
+            usleep(1e4);
         }
     }
 }
@@ -97,7 +97,7 @@ void demo2357Circle(X7Controller &controller, const bool debug){
     std::cout<<"円運動"<<std::endl;
     int step_max = 30;
     int rotation_num = 2;
-    double offset_x = 0.2, offset_y = -0.2, offset_z = 0.2;
+    double offset_x = 0.2, offset_y = 0.0, offset_z = 0.3;
     double length = 0.05;
     double theta = 0;
     double beta = M_PI; // 真下を向かせる
@@ -127,7 +127,7 @@ void demo2357Circle(X7Controller &controller, const bool debug){
             if(controller.move23578(x, y, z, beta, gamma, debug) == false){
                 return;
             }
-            usleep(1e5);
+            usleep(1e4);
         }
     }
 }
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]){
         }else if(keyInput == 'i'){
             controller.initializePosition();
         }else if(keyInput == 'a'){
-            // demo35Circle(controller, true);
+            // demo35Circle(controller, false);
             // demo235Circle(controller, false);
             // demo2357Circle(controller, false);
             // std::vector<uint8_t> offList = {2, 3, 5, 6, 7, 8 ,9};

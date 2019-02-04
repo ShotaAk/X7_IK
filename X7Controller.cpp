@@ -403,7 +403,6 @@ bool X7Controller::testMove(const int duration_msec){
             break;
         }
 
-
         // 経過時間を更新
         end = std::chrono::system_clock::now();
         elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
@@ -413,8 +412,7 @@ bool X7Controller::testMove(const int duration_msec){
         // 速度制御モードに切り替える
         velocityMode(idList);
 
-        double VX=0.001;
-        double VZ=0;
+        velocityMove(0.00, -0.03, 1000, false);
 
         // 位置制御モードに切り替える
         positionMode(idList);
@@ -497,28 +495,59 @@ Complex X7Controller::getPositionXZ(void){
     // ID3とID5のサーボ位置を取得し、x, y座標として返す
     // 他のサーボはinitialize位置で固定されていること
 
+
+    double angle3 = updateServoAngle(3);
+    double angle5 = updateServoAngle(5);
+    Complex position;
+
+    // 実数部をx座標とする
+    position.real(mLINK3*std::sin(angle3) + mLINK5*std::sin(angle3+angle5));
+    position.imag(mLINK0 + mLINK3*std::cos(angle3) + mLINK5*std::cos(angle3+angle5));
+
+    return position;
+}
+
+
+bool X7Controller::velocityMove(const double vx, const double vz, const int duration_msec, const bool debug){
+
+    std::chrono::system_clock::time_point  start, end;
+    start = std::chrono::system_clock::now();
+    double elapsed = 0;
+
+    while(elapsed < duration_msec){
+
+        double angle3 = updateServoAngle(3);
+        double angle5 = updateServoAngle(5);
+
+        double A = -1.0 / (mLINK3 * mLINK5 * std::sin(angle5));
+        double UP_LEFT = -mLINK5 * std::sin(angle3 + angle5);
+        double UP_RIGHT= -mLINK5 * std::cos(angle3 + angle5);
+        double DN_LEFT = mLINK3 * std::sin(angle3) + mLINK5 * std::sin(angle3 + angle5);
+        double DN_RIGHT= mLINK3 * std::cos(angle3) + mLINK5 * std::cos(angle3 + angle5);
+
+        double servoVel3 = A * (UP_LEFT*vx + UP_RIGHT*vz);
+        double servoVel5 = A * (DN_LEFT*vx + DN_RIGHT*vz);
+
+        std::cerr<<"ID3_VEL:"<<toDegree(servoVel3)
+            <<" ID5_VEL:"<<toDegree(servoVel5)<<std::endl;
+
+        // 経過時間を更新
+        end = std::chrono::system_clock::now();
+        elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+    }
+
+    return true;
+}
+
+
+double X7Controller::updateServoAngle(const uint8_t id){
      uint32_t dxl_present_position;
      uint8_t dxl_error;
 
-     int result = mPacketHandler->read4ByteTxRx(mPortHandler,3,
+     int result = mPacketHandler->read4ByteTxRx(mPortHandler,id,
              mADDR_PRESENT_POSITION,(uint32_t*)&dxl_present_position,&dxl_error);
-     mServoMap[3].setPosition(dxl_present_position);
-     double angle3 = mServoMap[3].getAngle();
+     mServoMap[id].setPosition(dxl_present_position);
+     double angle = mServoMap[id].getAngle();
 
-     result = mPacketHandler->read4ByteTxRx(mPortHandler,5,
-             mADDR_PRESENT_POSITION,(uint32_t*)&dxl_present_position,&dxl_error);
-     mServoMap[5].setPosition(dxl_present_position);
-     double angle5 = mServoMap[5].getAngle();
-
-     Complex position;
-
-     // 実数部をx座標とする
-     position.real(mLINK3*std::sin(angle3) + mLINK5*std::sin(angle3+angle5));
-     position.imag(mLINK0 + mLINK3*std::cos(angle3) + mLINK5*std::cos(angle3+angle5));
-
-     return position;
-}
-
-bool X7Controller::velocityMove(const double vx, const double vy, const int duration_mse, const bool debug){
-
+     return angle;
 }
