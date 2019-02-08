@@ -122,6 +122,52 @@ bool X7Controller::changeAngle(const uint8_t id, const double angle, const bool 
     }
 }
 
+bool X7Controller::changeVelocity(const uint8_t id, const double v_rad_per_sec, const bool debug=false){
+    // 指定IDのサーボを指定角速度で動かす
+    // velocityMode() で指定IDのサーボを速度制御にしておくこと
+    //
+
+    const double DXL_UNIT = 0.229; // RPM
+    const double RPS_TO_DXL_RPM = 60.0 / (2.0 * M_PI * DXL_UNIT);
+
+    uint8_t dxl_error;
+    int32_t dxl_goal_velocity;
+
+    dxl_goal_velocity = v_rad_per_sec * RPS_TO_DXL_RPM;
+    
+    std::cout<<"["<<std::to_string(id)<<"] "<<"goalVelocity: "<<dxl_goal_velocity<<std::endl;
+    if(debug){
+        return false;
+    }
+
+    int32_t result = mPacketHandler->write4ByteTxRx(
+            mPortHandler,
+            id,
+            mADDR_GOAL_VELOCITY,
+            dxl_goal_velocity
+            &dxl_error);
+
+    uint32_t result_velocity;
+    result = mPacketHandler->read4ByteTxRx(
+            mPortHandler,
+            id,
+            mADDR_GOAL_VELOCITY,
+            (uint32_t*)&result_velocity,
+            &dxl_error);
+    std::cout<<"["<<std::to_string(id)<<"] "<<"result_velocity: "<<result_velocity<<std::endl;
+
+
+
+    if(result != COMM_SUCCESS){
+        std::cerr<<"error"<<mPacketHandler->getTxRxResult(result)<<std::endl;
+        return false;
+    }else if(dxl_error !=0){
+        std::cerr<<"error"<<std::endl;
+        return false;
+    }
+    return true;
+}
+
 bool X7Controller::torqueOnOff(const std::vector<uint8_t> &onList, const std::vector<uint8_t> &offList){
     // 指定IDのサーボのトルクをON/OFFする
     // トルク操作に失敗した場合にfalseを返す。ただし、失敗後も操作は続ける
@@ -412,7 +458,7 @@ bool X7Controller::testMove(const int duration_msec){
         // 速度制御モードに切り替える
         velocityMode(idList);
 
-        velocityMove(0.00, -0.03, 1000, false);
+        velocityMove(0.1, 0.0, 2000, false);
 
         // 位置制御モードに切り替える
         positionMode(idList);
@@ -530,6 +576,10 @@ bool X7Controller::velocityMove(const double vx, const double vz, const int dura
 
         std::cerr<<"ID3_VEL:"<<toDegree(servoVel3)
             <<" ID5_VEL:"<<toDegree(servoVel5)<<std::endl;
+
+        // changeVelocity(3, servoVel3, debug);
+        // changeVelocity(5, servoVel5, debug);
+        changeVelocity(5, 0.7854, false);
 
         // 経過時間を更新
         end = std::chrono::system_clock::now();

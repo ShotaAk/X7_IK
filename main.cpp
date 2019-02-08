@@ -159,7 +159,9 @@ int main(int argc, char* argv[]){
             // demo2357Circle(controller, false);
             // std::vector<uint8_t> offList = {2, 3, 5, 6, 7, 8 ,9};
             // controller.torqueOnOff(onList, offList);
-            controller.testMove(10000);
+            std::vector<uint8_t> idList = {2, 3, 4, 5, 6, 7, 8 ,9};
+            controller.positionMode(idList);
+            // controller.testMove(10000);
         }else{
             std::cout<<keyInput<<std::endl;
         }

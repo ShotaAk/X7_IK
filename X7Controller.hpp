@@ -51,6 +51,7 @@ class X7Controller{
         bool initializePosition(void);
         void showServoAngles(const int duration_msec);
         bool changeAngle(const uint8_t id, const double angle, const bool debug);
+        bool changeVelocity(const uint8_t id, const double v_rad_per_sec, const bool debug);
         bool torqueOnOff(const std::vector<uint8_t> &onList, const std::vector<uint8_t> &offList);
         bool velocityMode(const std::vector<uint8_t> &idList);
         bool positionMode(const std::vector<uint8_t> &idList);
